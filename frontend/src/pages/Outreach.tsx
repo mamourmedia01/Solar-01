@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLeads } from "../hooks/useLeads";
-import type { Lead } from "../types";
 import { Mail, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 

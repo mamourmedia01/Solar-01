@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { Sun } from "lucide-react";
 import toast from "react-hot-toast";

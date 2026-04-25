@@ -84,7 +84,7 @@ interface Props {
 // ─────────────────────────────────────────────
 // Main viewer
 // ─────────────────────────────────────────────
-export default function BuildingViewer({ polygon, roofAreaM2, heightM, orientationDeg = 180, systemKw }: Props) {
+export default function BuildingViewer({ polygon, roofAreaM2, heightM, systemKw }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -244,7 +244,7 @@ export default function BuildingViewer({ polygon, roofAreaM2, heightM, orientati
     let footprint: [number, number][] = [];
     let extents: Extents = { minX: -15, maxX: 15, minY: -10, maxY: 10 };
 
-    if (polygon?.coordinates?.[0]?.length > 2) {
+    if (polygon && polygon.coordinates?.[0] && polygon.coordinates[0].length > 2) {
       const raw = polygon.coordinates[0];
       const ctr = centroid2D(raw);
       footprint = projectCoords(raw, ctr);
