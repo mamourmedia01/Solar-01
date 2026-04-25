@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background-color: #f5f5f7;
+    color: #1d1d1f;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-[20px] border border-white/40 shadow-card rounded-2xl;
+  }
+  .glass-card-solid {
+    @apply bg-white border border-gray-100 shadow-card rounded-2xl;
+  }
+  .btn-primary {
+    @apply bg-apple-dark text-white px-4 py-2 rounded-xl text-sm font-medium
+           hover:bg-gray-800 active:scale-95 transition-all duration-150;
+  }
+  .btn-secondary {
+    @apply bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl
+           text-sm font-medium hover:bg-gray-50 active:scale-95 transition-all duration-150;
+  }
+  .btn-cyan {
+    @apply bg-cyan-500 text-white px-4 py-2 rounded-xl text-sm font-medium
+           hover:bg-cyan-400 active:scale-95 transition-all duration-150;
+  }
+  .label-xs {
+    @apply text-xs font-medium uppercase tracking-widest text-gray-400;
+  }
+  .stat-value {
+    @apply text-2xl font-semibold text-apple-dark tabular-nums;
+  }
+}
+
+/* MapLibre overrides */
+.maplibregl-map { border-radius: 1rem; }
+.maplibregl-ctrl-logo { display: none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
