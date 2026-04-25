@@ -1,19 +1,26 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
-client: AsyncIOMotorClient = None
+_client: AsyncIOMotorClient | None = None
+
+
+def _get_client() -> AsyncIOMotorClient:
+    global _client
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.MONGODB_URL)
+    return _client
 
 
 async def connect_db():
-    global client
-    client = AsyncIOMotorClient(settings.MONGODB_URL)
+    _get_client()
 
 
 async def close_db():
-    global client
-    if client:
-        client.close()
+    global _client
+    if _client is not None:
+        _client.close()
+        _client = None
 
 
 def get_db():
-    return client[settings.DB_NAME]
+    return _get_client()[settings.DB_NAME]
