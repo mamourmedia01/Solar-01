@@ -54,7 +54,7 @@ export default function LeadTable({ leads, total, page, pageSize, onPage, onEnri
             {leads.map((lead) => (
               <tr
                 key={lead.id}
-                onClick={() => navigate(`/leads/${lead.id}`)}
+                onClick={() => navigate(`/app/leads/${lead.id}`)}
                 className="hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-3 max-w-[200px]">

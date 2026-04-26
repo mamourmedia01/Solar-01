@@ -17,6 +17,13 @@ export default {
           800: "#162d4a",
           900: "#0f1f35",
         },
+        "landing-bg": "#07090f",
+        "landing-surface": "#0d1117",
+        "landing-cream": "#faf7f2",
+        "landing-cream-dim": "#e8e3d9",
+        "landing-blue": "#2563eb",
+        "landing-blue-bright": "#3b82f6",
+        "landing-glow": "rgba(59,130,246,0.15)",
       },
       backdropBlur: {
         glass: "20px",

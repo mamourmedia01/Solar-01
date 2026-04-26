@@ -6,20 +6,20 @@ import {
 import clsx from "clsx";
 
 const NAV = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/leads",     icon: MapPin,          label: "Leads" },
-  { to: "/outreach",  icon: Mail,            label: "Outreach" },
-  { to: "/billing",   icon: CreditCard,      label: "Billing" },
+  { to: "/app/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/leads",     icon: MapPin,          label: "Leads" },
+  { to: "/app/outreach",  icon: Mail,            label: "Outreach" },
+  { to: "/app/billing",   icon: CreditCard,      label: "Billing" },
 ];
 
 export default function Shell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate("/login"); };
+  const handleLogout = () => { logout(); navigate("/"); };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-apple-gray">
+    <div className="flex h-screen overflow-hidden bg-white">
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 flex flex-col bg-white/70 backdrop-blur-glass border-r border-white/50 shadow-glass">
         <div className="flex items-center gap-2 px-5 py-5 border-b border-gray-100">

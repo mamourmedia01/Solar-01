@@ -40,8 +40,8 @@ export default function Billing() {
     try {
       const { data } = await api.post("/billing/checkout", {
         tier,
-        success_url: window.location.origin + "/billing?success=1",
-        cancel_url: window.location.origin + "/billing",
+        success_url: window.location.origin + "/app/billing?success=1",
+        cancel_url: window.location.origin + "/app/billing",
       });
       window.location.href = data.checkout_url;
     } catch {

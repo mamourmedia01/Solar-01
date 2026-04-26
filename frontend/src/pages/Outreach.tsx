@@ -31,7 +31,7 @@ export default function Outreach() {
             return (
               <div
                 key={lead.id}
-                onClick={() => navigate(`/leads/${lead.id}`)}
+                onClick={() => navigate(`/app/leads/${lead.id}`)}
                 className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-white/80 transition-colors"
               >
                 <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -62,7 +62,7 @@ export default function Outreach() {
             {withContact.map((lead) => (
               <div
                 key={lead.id}
-                onClick={() => navigate(`/leads/${lead.id}`)}
+                onClick={() => navigate(`/app/leads/${lead.id}`)}
                 className="glass-card p-4 flex items-center gap-4 cursor-pointer hover:bg-white/80 transition-colors"
               >
                 <div className="w-9 h-9 rounded-xl bg-cyan-100 flex items-center justify-center flex-shrink-0">

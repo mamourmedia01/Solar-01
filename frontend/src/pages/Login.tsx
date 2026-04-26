@@ -23,7 +23,7 @@ export default function Login() {
       } else {
         await register(form.email, form.name, form.password, form.org_name || undefined);
       }
-      navigate("/dashboard");
+      navigate("/app/dashboard");
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || "Authentication failed");
     } finally {

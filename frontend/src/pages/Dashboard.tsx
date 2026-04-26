@@ -39,7 +39,7 @@ export default function Dashboard() {
 
         {/* Top-right: Map */}
         <div className="rounded-2xl overflow-hidden" style={{ minHeight: 0 }}>
-          <MapPanel leads={leads} onLeadClick={(id) => navigate(`/leads/${id}`)} />
+          <MapPanel leads={leads} onLeadClick={(id) => navigate(`/app/leads/${id}`)} />
         </div>
 
         {/* Bottom-left: Filters */}
