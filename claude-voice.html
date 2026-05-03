@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Eve — Voice Assistant</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root {
   --bg:         #08080f;
@@ -132,6 +133,7 @@ body{
 .ibtn:hover{border-color:var(--border2);color:var(--text)}
 .ibtn.set{border-color:rgba(74,222,128,.3);color:var(--ok);background:rgba(74,222,128,.04)}
 .ibtn.clr:hover{border-color:var(--err);color:var(--err)}
+.ibtn.docs-set{border-color:rgba(124,92,247,.4);color:var(--acc2);background:rgba(124,92,247,.06)}
 
 /* Wake lock badge */
 .wl-badge{
@@ -140,6 +142,43 @@ body{
 }
 .wl-badge.on{display:flex}
 .wl-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:breathe 2s infinite}
+
+/* ── SIMBA NEURAL CORE ────────────────────────── */
+#simba-section{
+  position:relative;
+  height:260px;
+  background:radial-gradient(ellipse 100% 120% at 50% 40%,#0d0822 0%,#08080f 100%);
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+  flex-shrink:0;
+  transition:height .35s cubic-bezier(.4,0,.2,1);
+}
+#simba-section.hidden{height:0;border-bottom-color:transparent}
+#simba-canvas{width:100%;height:100%;display:block}
+.simba-label{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:rgba(124,92,247,.38);pointer-events:none;
+  letter-spacing:2.5px;text-transform:uppercase;font-weight:700;
+  white-space:nowrap;
+}
+.neural-count{
+  position:absolute;top:11px;right:13px;
+  font-size:10px;color:rgba(124,92,247,.45);font-family:monospace;letter-spacing:.4px;
+}
+#simba-toggle{
+  position:absolute;top:9px;left:11px;
+  background:rgba(8,8,15,.65);border:1px solid rgba(37,37,64,.9);
+  color:var(--muted);font-size:10px;padding:3px 9px;border-radius:6px;
+  cursor:pointer;letter-spacing:.3px;backdrop-filter:blur(4px);z-index:5;
+}
+#simba-toggle:hover{color:var(--text);border-color:var(--border2)}
+#simba-section::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:48px;
+  background:linear-gradient(transparent,#08080f);pointer-events:none;
+}
+@media(max-width:520px){
+  #simba-section{height:195px}
+}
 
 /* Chat */
 .chat{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
@@ -191,7 +230,6 @@ body{
 .meta{display:flex;align-items:center;gap:5px;margin-top:3px;padding:0 3px}
 .mtime{font-size:10px;color:var(--dim)}
 .msrc{font-size:10px;color:var(--dim)}
-/* Typing */
 .tdots{
   display:flex;align-items:center;gap:4px;padding:11px 15px;
   background:var(--eve-bg);border:1px solid var(--eve-bdr);
@@ -210,19 +248,15 @@ body{
   margin-bottom:9px;display:none;line-height:1.5;
 }
 .errbanner.on{display:block}
-/* Wave */
 .wave{display:none;justify-content:center;align-items:center;gap:3px;height:26px;margin-bottom:7px}
 .wave.on{display:flex}
 .wb{width:3px;border-radius:2px;background:var(--acc);height:4px;transition:height .08s ease}
 .wb:nth-child(even){background:var(--acc2)}
-/* Status */
 .status{text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px;min-height:16px}
 .status.listening{color:var(--acc2);font-weight:500}
 .status.speaking{color:var(--ok);font-weight:500}
 .status.auto{color:var(--warn);font-weight:500}
-/* Transcript */
 .transc{text-align:center;font-size:13px;color:var(--text);min-height:18px;margin-bottom:9px;font-style:italic;opacity:.55}
-/* Input row */
 .irow{display:flex;align-items:center;gap:9px}
 .txti{
   flex:1;background:var(--s2);border:1px solid var(--border);border-radius:24px;
@@ -298,7 +332,7 @@ body{
 .overlay.on{display:flex}
 .modal{
   background:var(--s1);border:1px solid var(--border);border-radius:22px;
-  padding:28px;width:380px;max-width:calc(100vw - 28px);
+  padding:28px;width:400px;max-width:calc(100vw - 28px);
   box-shadow:0 28px 70px rgba(0,0,0,.55);animation:min .2s ease;
 }
 @keyframes min{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
@@ -312,6 +346,7 @@ body{
 }
 .mi:focus{border-color:var(--acc)}
 .mi::placeholder{color:var(--dim)}
+textarea.mi{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:13px;resize:vertical}
 .mbtns{display:flex;gap:9px}
 .mbtn{
   flex:1;padding:11px;border-radius:11px;border:none;cursor:pointer;
@@ -321,6 +356,9 @@ body{
 .mbtn.p:hover{background:var(--acc2)}
 .mbtn.s{background:var(--s2);color:var(--text);border:1px solid var(--border)}
 .mbtn.s:hover{border-color:var(--border2)}
+.mbtn.danger{background:rgba(248,113,113,.1);color:var(--err);border:1px solid rgba(248,113,113,.25)}
+.mbtn.danger:hover{background:rgba(248,113,113,.18)}
+.docs-meta{font-size:11px;color:var(--dim);text-align:center;margin-top:6px}
 
 /* Notes panel */
 .notes-panel{
@@ -396,6 +434,7 @@ body{
     </div>
     <div class="hr">
       <button class="ibtn" id="key-btn" onclick="openKeyModal()">🔑 Key</button>
+      <button class="ibtn" id="docs-btn" onclick="openDocsModal()">📄 Docs</button>
       <div class="pill" id="task-pill" onclick="toggleTask()">
         <div class="pdot"></div><span>Tasks</span>
       </div>
@@ -405,6 +444,14 @@ body{
       <button class="ibtn" id="notes-btn" onclick="openNotes()" style="display:none">📝 <span id="note-count">0</span></button>
       <button class="ibtn clr" onclick="clearChat()">Clear</button>
     </div>
+  </div>
+
+  <!-- ══ SIMBA NEURAL CORE ══════════════════════ -->
+  <div id="simba-section">
+    <canvas id="simba-canvas"></canvas>
+    <button id="simba-toggle" onclick="toggleSimba()">◐ Hide</button>
+    <div class="neural-count" id="neural-count">0 memories</div>
+    <div class="simba-label">Eve · Neural Core</div>
   </div>
 
   <div class="chat" id="chat">
@@ -453,6 +500,21 @@ body{
   </div>
 </div>
 
+<!-- ══ DOCS MODAL ══════════════════════════════════ -->
+<div class="overlay" id="docs-modal" onclick="maybeClose(event,'docs-modal')">
+  <div class="modal">
+    <h3>📄 Feed Documentation to Eve</h3>
+    <p>Paste any documentation, instructions, API specs, or knowledge below. Eve will use this as background context in all future conversations.</p>
+    <textarea class="mi" id="docs-ta" style="height:160px" placeholder="Paste documentation, instructions, API specs, system knowledge…"></textarea>
+    <div class="mbtns">
+      <button class="mbtn danger" onclick="clearDocs()" id="clear-docs-btn" style="display:none">Clear Docs</button>
+      <button class="mbtn s" onclick="closeOverlay('docs-modal')">Cancel</button>
+      <button class="mbtn p" onclick="saveDocs()">Feed to Eve</button>
+    </div>
+    <div class="docs-meta" id="docs-meta"></div>
+  </div>
+</div>
+
 <!-- ══ NOTES PANEL ════════════════════════════════ -->
 <div class="notes-panel" id="notes-panel" onclick="maybeCloseNotes(event)">
   <div class="notes-inner">
@@ -470,12 +532,12 @@ body{
 /* ═══════════════════════════════════════════════
    CONFIG
 ═══════════════════════════════════════════════ */
-const PASS           = '272727';
-const MODEL          = 'claude-sonnet-4-6';
-const COMPRESS_AT    = 16;   // compress when history > N messages
-const KEEP_RECENT    = 6;    // keep this many messages fresh
-const MAX_TOKENS     = 1024;
-const MAX_TOKENS_COMP= 512;
+const PASS            = '272727';
+const MODEL           = 'claude-sonnet-4-6';
+const COMPRESS_AT     = 16;
+const KEEP_RECENT     = 6;
+const MAX_TOKENS      = 1024;
+const MAX_TOKENS_COMP = 512;
 
 const BASE_SYSTEM = `You are Eve, a warm and capable voice assistant powered by Claude.
 Keep responses concise and natural for voice — 2–3 sentences unless depth is clearly needed.
@@ -495,21 +557,22 @@ Always inform the user what action you are taking. You can chain multiple action
 /* ═══════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════ */
-let pin        = '';
-let apiKey     = localStorage.getItem('eve_key') || '';
-let history    = [];
-let notes      = JSON.parse(localStorage.getItem('eve_notes') || '[]');
-let listening  = false;
-let speaking   = false;
-let alwaysOn   = false;
-let taskMode   = false;
-let autoMode   = false;    // Eve is doing something autonomously
-let unlocked   = false;
-let reco       = null;
-let wl         = null;     // wake lock handle
-let waveTimer  = null;
-let timerHandle= null;
-let timerEnd   = null;
+let pin         = '';
+let apiKey      = localStorage.getItem('eve_key') || '';
+let customCtx   = localStorage.getItem('eve_context') || '';
+let history     = [];
+let notes       = JSON.parse(localStorage.getItem('eve_notes') || '[]');
+let listening   = false;
+let speaking    = false;
+let alwaysOn    = false;
+let taskMode    = false;
+let autoMode    = false;
+let unlocked    = false;
+let reco        = null;
+let wl          = null;
+let waveTimer   = null;
+let timerHandle = null;
+let timerEnd    = null;
 
 /* ═══════════════════════════════════════════════
    LOCK
@@ -561,11 +624,64 @@ function boot(){
   buildWave();
   initReco();
   refreshKeyBtn();
+  refreshDocsBtn();
   refreshNotes();
-  // warm voices
   window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
   window.speechSynthesis.getVoices();
   if(!apiKey)setTimeout(openKeyModal,700);
+  initSimba();
+}
+
+/* ═══════════════════════════════════════════════
+   SYSTEM PROMPT
+═══════════════════════════════════════════════ */
+function getSystem(){
+  let sys = BASE_SYSTEM;
+  if(customCtx){
+    sys = `[KNOWLEDGE BASE — use this as background context]\n${customCtx}\n[/KNOWLEDGE BASE]\n\n${sys}`;
+  }
+  if(taskMode) sys += TASK_SYSTEM_EXTRA;
+  return sys;
+}
+
+/* ═══════════════════════════════════════════════
+   DOCS FEED
+═══════════════════════════════════════════════ */
+function openDocsModal(){
+  document.getElementById('docs-modal').classList.add('on');
+  document.getElementById('docs-ta').value = customCtx;
+  updateDocsMeta();
+  document.getElementById('clear-docs-btn').style.display = customCtx ? 'flex' : 'none';
+  setTimeout(()=>document.getElementById('docs-ta').focus(),150);
+}
+function saveDocs(){
+  const v = document.getElementById('docs-ta').value.trim();
+  customCtx = v;
+  localStorage.setItem('eve_context', v);
+  refreshDocsBtn();
+  closeOverlay('docs-modal');
+  if(v) addSysMsg(`📄 Knowledge base updated — ${v.length.toLocaleString()} characters loaded into Eve's context.`);
+}
+function clearDocs(){
+  document.getElementById('docs-ta').value='';
+  customCtx='';
+  localStorage.removeItem('eve_context');
+  refreshDocsBtn();
+  document.getElementById('clear-docs-btn').style.display='none';
+  updateDocsMeta();
+}
+function updateDocsMeta(){
+  const len = (document.getElementById('docs-ta').value||'').length;
+  document.getElementById('docs-meta').textContent = len > 0 ? `${len.toLocaleString()} characters · ~${Math.round(len/4).toLocaleString()} tokens` : '';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const ta = document.getElementById('docs-ta');
+  if(ta) ta.addEventListener('input', updateDocsMeta);
+});
+function refreshDocsBtn(){
+  const b = document.getElementById('docs-btn');
+  if(customCtx){b.textContent='📄 Docs ✓';b.classList.add('docs-set')}
+  else{b.textContent='📄 Docs';b.classList.remove('docs-set')}
 }
 
 /* ═══════════════════════════════════════════════
@@ -586,7 +702,6 @@ function relWakeLock(){
   if(wl){wl.release();wl=null;}
   document.getElementById('wl-badge').classList.remove('on');
 }
-// Re-acquire on visibility change
 document.addEventListener('visibilitychange',()=>{
   if(alwaysOn&&document.visibilityState==='visible')reqWakeLock();
 });
@@ -675,7 +790,6 @@ function speak(text){
   const pref=voices.find(v=>v.lang.startsWith('en')&&/neural|premium|enhanced|samantha|daniel|karen|zira|aria/i.test(v.name));
   if(pref)u.voice=pref;
   u.onend=u.onerror=()=>{speaking=false;updateUI();if(alwaysOn)setTimeout(startReco,450)};
-  // Chrome long-speech fix
   const fix=setInterval(()=>{if(!window.speechSynthesis.speaking){clearInterval(fix);return}window.speechSynthesis.resume()},8000);
   window.speechSynthesis.speak(u);
 }
@@ -741,7 +855,7 @@ function updateUI(){
    TOKEN COMPRESSION (caveman-style)
 ═══════════════════════════════════════════════ */
 async function maybeCompress(){
-  if(history.length<=COMPRESS_THRESHOLD)return;
+  if(history.length<=COMPRESS_AT)return;
   const toComp=history.slice(0,history.length-KEEP_RECENT);
   const recent=history.slice(history.length-KEEP_RECENT);
   try{
@@ -757,25 +871,16 @@ async function maybeCompress(){
     ];
   }catch(_){}
 }
-const COMPRESS_THRESHOLD=COMPRESS_AT;
 
 /* ═══════════════════════════════════════════════
    ACTION PARSER
 ═══════════════════════════════════════════════ */
 function parseActions(text){
   const actions=[];
-  // Timers
-  const timers=[...text.matchAll(/\[TIMER:(\d+)([ms])\]/gi)];
-  timers.forEach(m=>actions.push({type:'timer',val:parseInt(m[1]),unit:m[2].toLowerCase()}));
-  // Notes
-  const noteMx=[...text.matchAll(/\[NOTE:([^\]]+)\]/gi)];
-  noteMx.forEach(m=>actions.push({type:'note',text:m[1].trim()}));
-  // Search
-  const searchMx=[...text.matchAll(/\[SEARCH:([^\]]+)\]/gi)];
-  searchMx.forEach(m=>actions.push({type:'search',query:m[1].trim()}));
-  // Remind
-  const remMx=[...text.matchAll(/\[REMIND:(\d+)([ms]):([^\]]+)\]/gi)];
-  remMx.forEach(m=>actions.push({type:'remind',val:parseInt(m[1]),unit:m[2].toLowerCase(),text:m[3].trim()}));
+  [...text.matchAll(/\[TIMER:(\d+)([ms])\]/gi)].forEach(m=>actions.push({type:'timer',val:parseInt(m[1]),unit:m[2].toLowerCase()}));
+  [...text.matchAll(/\[NOTE:([^\]]+)\]/gi)].forEach(m=>actions.push({type:'note',text:m[1].trim()}));
+  [...text.matchAll(/\[SEARCH:([^\]]+)\]/gi)].forEach(m=>actions.push({type:'search',query:m[1].trim()}));
+  [...text.matchAll(/\[REMIND:(\d+)([ms]):([^\]]+)\]/gi)].forEach(m=>actions.push({type:'remind',val:parseInt(m[1]),unit:m[2].toLowerCase(),text:m[3].trim()}));
   return actions;
 }
 
@@ -790,14 +895,8 @@ function executeActions(actions){
       startTimer(secs);
       addSysMsg(`⏱ Timer set for ${a.val}${a.unit==='m'?` minute${a.val>1?'s':''}`:` second${a.val>1?'s':''}`}.`);
     }
-    if(a.type==='note'){
-      saveNote(a.text);
-      addSysMsg(`📝 Note saved: "${a.text}"`);
-    }
-    if(a.type==='search'){
-      window.open(`https://www.google.com/search?q=${encodeURIComponent(a.query)}`,'_blank');
-      addSysMsg(`🔍 Opened search for: "${a.query}"`);
-    }
+    if(a.type==='note'){saveNote(a.text);addSysMsg(`📝 Note saved: "${a.text}"`)}
+    if(a.type==='search'){window.open(`https://www.google.com/search?q=${encodeURIComponent(a.query)}`,'_blank');addSysMsg(`🔍 Opened search for: "${a.query}"`)}
     if(a.type==='remind'){
       const secs=a.unit==='m'?a.val*60:a.val;
       scheduleReminder(secs,a.text);
@@ -821,11 +920,7 @@ function tickTimer(){
   const m=Math.floor(left/60).toString().padStart(2,'0');
   const s=(left%60).toString().padStart(2,'0');
   document.getElementById('timer-text').textContent=`Timer: ${m}:${s}`;
-  if(left<=0){
-    cancelTimer();
-    addSysMsg('⏰ Timer finished!');
-    speak('Your timer is done.');
-  }
+  if(left<=0){cancelTimer();addSysMsg('⏰ Timer finished!');speak('Your timer is done.')}
 }
 function cancelTimer(){
   clearInterval(timerHandle);timerHandle=null;timerEnd=null;
@@ -836,10 +931,7 @@ function cancelTimer(){
    REMINDERS
 ═══════════════════════════════════════════════ */
 function scheduleReminder(secs,text){
-  setTimeout(()=>{
-    addSysMsg('🔔 Reminder: '+text);
-    speak('Reminder: '+text);
-  },secs*1000);
+  setTimeout(()=>{addSysMsg('🔔 Reminder: '+text);speak('Reminder: '+text)},secs*1000);
 }
 
 /* ═══════════════════════════════════════════════
@@ -881,17 +973,18 @@ async function send(text,src){
   document.getElementById('empty')?.remove();
   addMsg('user',text,src);
   history.push({role:'user',content:text});
+  addNeuralNode();
   await maybeCompress();
   const tid=addTyping();
   setBadge('thinking');
   try{
-    const sys=BASE_SYSTEM+(taskMode?TASK_SYSTEM_EXTRA:'');
-    const raw=await callAPI(history,MAX_TOKENS,sys);
+    const raw=await callAPI(history,MAX_TOKENS,getSystem());
     removeEl(tid);
     const actions=taskMode?parseActions(raw):[];
     const spokenText=taskMode?stripTags(raw):raw;
     addMsg('eve',raw,'api');
     history.push({role:'assistant',content:raw});
+    addNeuralNode();
     setBadge('ready');
     if(actions.length>0)executeActions(actions);
     if(spokenText)speak(spokenText);
@@ -979,6 +1072,8 @@ function removeEl(id){document.getElementById(id)?.remove()}
 
 function clearChat(){
   history=[];stopSpeak();cancelTimer();
+  // Reset neural nodes visually
+  clearNeuralNodes();
   const chat=document.getElementById('chat');
   chat.innerHTML=`<div class="empty" id="empty">
     <div class="ering">🎙️</div>
@@ -1015,7 +1110,6 @@ function esc(t){
   return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* API Key modal */
 function openKeyModal(){
   document.getElementById('key-modal').classList.add('on');
   const inp=document.getElementById('key-in');
@@ -1034,6 +1128,339 @@ function refreshKeyBtn(){
   const b=document.getElementById('key-btn');
   if(apiKey){b.textContent='🔑 Key ✓';b.classList.add('set')}
   else{b.textContent='🔑 Key';b.classList.remove('set')}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THREE.JS — SIMBA NEURAL CORE
+   Stylized 3D lion face (young Simba) with obsidian neural pathways
+═══════════════════════════════════════════════════════════════ */
+let S = {}; // simba state namespace
+
+function initSimba(){
+  if(typeof THREE === 'undefined'){
+    document.getElementById('simba-section').style.display='none';
+    return;
+  }
+
+  const canvas  = document.getElementById('simba-canvas');
+  const section = document.getElementById('simba-section');
+
+  S.scene    = new THREE.Scene();
+  S.camera   = new THREE.PerspectiveCamera(42, section.clientWidth / section.clientHeight, 0.1, 100);
+  S.camera.position.set(0, 0.5, 5.8);
+  S.camera.lookAt(0, 0, 0);
+
+  S.renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  S.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  S.renderer.setSize(section.clientWidth, section.clientHeight);
+  S.renderer.setClearColor(0x000000, 0);
+
+  S.nodes    = [];  // neural memory nodes
+  S.lines    = [];  // neural pathway lines
+  S.active   = true;
+  S.t        = 0;
+  S.last     = performance.now();
+  S.jawCur   = 0;
+  S.jawTgt   = 0;
+
+  buildLionFace();
+  buildSceneLights();
+
+  window.addEventListener('resize', onSimbaResize);
+  requestAnimationFrame(simbaLoop);
+}
+
+/* ── LION FACE GEOMETRY ────────────────────────────────── */
+function mat(color, specular=0x2a1800, shininess=22){
+  return new THREE.MeshPhongMaterial({color, specular, shininess});
+}
+
+function buildLionFace(){
+  const sc = S.scene;
+
+  // Main head
+  sc.add(mesh(new THREE.SphereGeometry(1, 32, 24), mat(0xc8872e)));
+
+  // Mane — three layers, darker outward
+  maneRing(sc, 16, 1.08, 0.40, 0x2a1200);
+  maneRing(sc, 14, 1.42, 0.33, 0x170a00);
+  maneRing(sc, 12, 1.76, 0.27, 0x0d0400);
+
+  // Snout
+  const snout = mesh(new THREE.SphereGeometry(0.46, 20, 14), mat(0xd4a060));
+  snout.position.set(0, -0.2, 0.76);
+  snout.scale.set(1, 0.67, 0.82);
+  sc.add(snout);
+
+  // Upper jaw area
+  const upJaw = mesh(new THREE.SphereGeometry(0.38, 16, 12), mat(0xd4a060));
+  upJaw.position.set(0, -0.06, 0.9);
+  upJaw.scale.set(1.08, 0.42, 0.66);
+  sc.add(upJaw);
+
+  // Lower jaw — animated group (hinge at back of jaw)
+  S.jaw = new THREE.Group();
+  S.jaw.position.set(0, -0.32, 0.68);
+  const lj = mesh(new THREE.SphereGeometry(0.34, 16, 10), mat(0xba7828));
+  lj.position.set(0, 0, 0.22); // forward from hinge
+  lj.scale.set(1.06, 0.4, 0.64);
+  S.jaw.add(lj);
+  sc.add(S.jaw);
+
+  // Nose
+  const nose = mesh(new THREE.SphereGeometry(0.11, 12, 10), mat(0x180a0a, 0x050303, 80));
+  nose.position.set(0, 0.04, 0.98);
+  nose.scale.set(1.4, 0.76, 0.65);
+  sc.add(nose);
+
+  // Eyes
+  S.eyeL = buildEye(sc, -0.33, 0.29, 0.92);
+  S.eyeR = buildEye(sc,  0.33, 0.29, 0.92);
+
+  // Ears
+  buildEar(sc, -0.74, 0.9,  0.14,  0.22);
+  buildEar(sc,  0.74, 0.9,  0.14, -0.22);
+
+  // Forehead stripe (young Simba feature)
+  const stripe = mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(0xa86820));
+  stripe.position.set(0, 0.65, 0.82);
+  stripe.scale.set(0.38, 1.2, 0.3);
+  sc.add(stripe);
+
+  // Cheek tufts
+  [[-0.78, 0.0, 0.74],[0.78, 0.0, 0.74]].forEach(([x,y,z])=>{
+    const t = mesh(new THREE.SphereGeometry(0.16, 8, 8), mat(0xd0a058));
+    t.position.set(x,y,z); t.scale.set(0.65, 1.35, 0.5);
+    sc.add(t);
+  });
+
+  // Whisker dots
+  [[-0.22,-0.11,0.96],[-0.34,-0.18,0.93],[-0.43,-0.28,0.88],
+   [ 0.22,-0.11,0.96],[ 0.34,-0.18,0.93],[ 0.43,-0.28,0.88]].forEach(([x,y,z])=>{
+    const w = mesh(new THREE.SphereGeometry(0.022, 6, 6), mat(0x140800, 0x000000, 5));
+    w.position.set(x,y,z);
+    sc.add(w);
+  });
+}
+
+function mesh(geo, material){ return new THREE.Mesh(geo, material); }
+
+function maneRing(scene, count, r, size, color){
+  for(let i=0;i<count;i++){
+    const a = (i/count)*Math.PI*2;
+    const s = mesh(
+      new THREE.SphereGeometry(size + Math.random()*0.09, 8, 6),
+      new THREE.MeshPhongMaterial({color, specular:0x080300, shininess:4})
+    );
+    s.position.set(Math.cos(a)*r, Math.sin(a)*r*0.84, -0.28 - Math.random()*0.18);
+    s.scale.z = 0.5 + Math.random()*0.28;
+    scene.add(s);
+  }
+}
+
+function buildEye(scene, x, y, z){
+  const g = new THREE.Group();
+  const eyeMat = new THREE.MeshPhongMaterial({
+    color: 0xd4820a, specular:0xffffff, shininess:130,
+    emissive: new THREE.Color(0x3a2060), emissiveIntensity: 0.45
+  });
+  const eyeball = mesh(new THREE.SphereGeometry(0.13, 16, 16), eyeMat);
+  const pupil   = mesh(new THREE.SphereGeometry(0.063, 10, 10), new THREE.MeshBasicMaterial({color:0x050505}));
+  pupil.position.z = 0.09;
+  const hilite  = mesh(new THREE.SphereGeometry(0.024, 6, 6), new THREE.MeshBasicMaterial({color:0xffffff}));
+  hilite.position.set(0.04, 0.04, 0.12);
+  g.add(eyeball, pupil, hilite);
+  g.position.set(x, y, z);
+  g.userData.eyeMat = eyeMat;
+  scene.add(g);
+  return g;
+}
+
+function buildEar(scene, x, y, z, rz){
+  const outer = mesh(new THREE.ConeGeometry(0.22, 0.4, 12), mat(0xb07028, 0x3a1a00, 15));
+  outer.position.set(x, y, z); outer.rotation.z = rz;
+  const inner = mesh(new THREE.ConeGeometry(0.12, 0.26, 10), mat(0xdf6858, 0x300000, 20));
+  inner.position.set(x*0.97, y, z+0.08); inner.rotation.z = rz;
+  scene.add(outer, inner);
+}
+
+function buildSceneLights(){
+  const sc = S.scene;
+  sc.add(new THREE.AmbientLight(0x8060d0, 0.38));
+  const key = new THREE.PointLight(0xffd0a0, 2.1, 22);
+  key.position.set(2.5, 2.2, 5);
+  sc.add(key);
+  const fill = new THREE.PointLight(0x7c5cf7, 1.3, 20);
+  fill.position.set(-3, 0.5, 3);
+  sc.add(fill);
+  const rim = new THREE.PointLight(0x304098, 0.9, 20);
+  rim.position.set(0, -1, -3);
+  sc.add(rim);
+}
+
+/* ── NEURAL NODES ─────────────────────────────────────── */
+function addNeuralNode(){
+  if(typeof THREE === 'undefined' || !S.scene) return;
+
+  const nMat = new THREE.MeshBasicMaterial({color:0x7c5cf7, transparent:true, opacity:0.85});
+  const node = mesh(new THREE.SphereGeometry(0.07, 8, 8), nMat);
+
+  // Distribute in a sphere shell around the head
+  const theta = Math.random()*Math.PI*2;
+  const phi   = Math.acos(2*Math.random()-1);
+  const r     = 2.4 + Math.random()*1.9;
+  node.position.set(
+    r*Math.sin(phi)*Math.cos(theta),
+    r*Math.sin(phi)*Math.sin(theta)*0.68,
+    r*Math.cos(phi)*0.52
+  );
+  node.userData = {
+    orig:  node.position.clone(),
+    phase: Math.random()*Math.PI*2,
+    freq:  0.18 + Math.random()*0.28,
+    birth: S.t
+  };
+  S.scene.add(node);
+  S.nodes.push(node);
+
+  // Connect to previous 1-2 nodes
+  S.nodes.slice(-3, -1).forEach(prev => {
+    const pts = neuralBezier(prev.position, node.position);
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const lm  = new THREE.LineBasicMaterial({color:0x7c5cf7, transparent:true, opacity:0.35});
+    const ln  = new THREE.Line(geo, lm);
+    S.scene.add(ln);
+    S.lines.push({line:ln, mat:lm});
+  });
+
+  // Trim to max 22 nodes / 28 lines
+  while(S.nodes.length > 22){
+    S.scene.remove(S.nodes.shift());
+  }
+  while(S.lines.length > 28){
+    const old = S.lines.shift();
+    S.scene.remove(old.line);
+    old.line.geometry.dispose();
+    old.mat.dispose();
+  }
+
+  const el = document.getElementById('neural-count');
+  if(el) el.textContent = S.nodes.length + (S.nodes.length===1?' memory':' memories');
+}
+
+function clearNeuralNodes(){
+  if(!S.scene) return;
+  S.nodes.forEach(n => S.scene.remove(n));
+  S.lines.forEach(({line}) => S.scene.remove(line));
+  S.nodes = []; S.lines = [];
+  const el = document.getElementById('neural-count');
+  if(el) el.textContent = '0 memories';
+}
+
+function neuralBezier(a, b){
+  const mid = a.clone().add(b).multiplyScalar(0.5);
+  mid.add(new THREE.Vector3(
+    (Math.random()-0.5)*2.4,
+    (Math.random()-0.5)*2.4,
+    (Math.random()-0.5)*1.4
+  ));
+  return new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone()).getPoints(26);
+}
+
+/* ── ANIMATION LOOP ───────────────────────────────────── */
+const C_IDLE     = new THREE.Color(0x7c5cf7);
+const C_LISTEN   = new THREE.Color(0x40d0ff);
+const C_SPEAK    = new THREE.Color(0x50ff80);
+const C_AUTO     = new THREE.Color(0xffb050);
+const CE_IDLE    = new THREE.Color(0x3a2060);
+const CE_LISTEN  = new THREE.Color(0x206090);
+const CE_SPEAK   = new THREE.Color(0x286040);
+const CE_AUTO    = new THREE.Color(0x804010);
+
+function simbaLoop(ts){
+  if(!S.active) return;
+  requestAnimationFrame(simbaLoop);
+
+  const dt = Math.min((ts - S.last)/1000, 0.05);
+  S.last = ts;
+  S.t   += dt;
+  const t = S.t;
+
+  // Gentle head sway
+  S.scene.rotation.y = Math.sin(t*0.28)*0.07;
+  S.scene.rotation.x = Math.sin(t*0.17)*0.025 + 0.04;
+
+  // Jaw — opens when speaking
+  S.jawTgt = speaking ? -Math.abs(Math.sin(t*9))*0.3 : 0;
+  S.jawCur += (S.jawTgt - S.jawCur)*0.18;
+  if(S.jaw) S.jaw.rotation.x = S.jawCur;
+
+  // Eye color/glow per state
+  const eyeColor  = listening ? C_LISTEN : speaking ? C_SPEAK : autoMode ? C_AUTO : C_IDLE;
+  const eyeEmit   = listening ? CE_LISTEN: speaking ? CE_SPEAK: autoMode ? CE_AUTO: CE_IDLE;
+  const eyeGlowTgt= listening ? 1.4+Math.sin(t*3)*0.3
+                  : speaking  ? 1.0
+                  : autoMode  ? 1.2+Math.sin(t*4)*0.35
+                  :             0.3+Math.sin(t*0.55)*0.15;
+  [S.eyeL, S.eyeR].forEach(eye=>{
+    if(!eye) return;
+    const em = eye.userData.eyeMat;
+    em.color.lerp(eyeColor, 0.07);
+    em.emissive.lerp(eyeEmit, 0.07);
+    em.emissiveIntensity += (eyeGlowTgt - em.emissiveIntensity)*0.09;
+  });
+
+  // Neural nodes drift + color + pulse burst on birth
+  const nodeColor    = listening ? C_LISTEN : speaking ? C_SPEAK : autoMode ? C_AUTO : C_IDLE;
+  const baseOpacity  = (listening||speaking||autoMode) ? 0.88 : 0.52;
+  S.nodes.forEach(node=>{
+    const {orig, phase, freq, birth} = node.userData;
+    node.position.x = orig.x + Math.sin(t*freq + phase)*0.22;
+    node.position.y = orig.y + Math.cos(t*freq*0.78 + phase)*0.22;
+    node.position.z = orig.z + Math.sin(t*freq*0.6  + phase*0.5)*0.12;
+    node.material.opacity = baseOpacity + Math.sin(t*2.4+phase)*0.28;
+    node.material.color.lerp(nodeColor, 0.05);
+    // Birth pulse
+    const age = t - birth;
+    if(age < 1.4){
+      node.scale.setScalar(1 + Math.sin((age/1.4)*Math.PI)*1.8);
+    } else {
+      node.scale.setScalar(1);
+    }
+  });
+
+  // Neural lines pulse
+  const lineAlpha = (listening||speaking||autoMode) ? 0.52 : 0.28;
+  S.lines.forEach(({mat: lm})=>{
+    lm.opacity = lineAlpha + Math.sin(t*1.7)*0.1;
+    lm.color.lerp(nodeColor, 0.04);
+  });
+
+  S.renderer.render(S.scene, S.camera);
+}
+
+function onSimbaResize(){
+  const sec = document.getElementById('simba-section');
+  if(!sec || !S.renderer || !S.active) return;
+  const w = sec.clientWidth, h = sec.clientHeight;
+  if(h < 1) return;
+  S.camera.aspect = w/h;
+  S.camera.updateProjectionMatrix();
+  S.renderer.setSize(w, h);
+}
+window.addEventListener('resize', onSimbaResize);
+
+function toggleSimba(){
+  const sec = document.getElementById('simba-section');
+  const btn = document.getElementById('simba-toggle');
+  S.active = !S.active;
+  sec.classList.toggle('hidden', !S.active);
+  btn.textContent = S.active ? '◐ Hide' : '◑ Show';
+  if(S.active){
+    S.last = performance.now();
+    requestAnimationFrame(simbaLoop);
+    setTimeout(onSimbaResize, 350); // after CSS transition
+  }
 }
 </script>
 </body>
