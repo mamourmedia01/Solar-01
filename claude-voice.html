@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Eve — Voice Assistant</title>
+<style>
+:root {
+  --bg:         #08080f;
+  --s1:         #0f0f1a;
+  --s2:         #161625;
+  --s3:         #1e1e30;
+  --border:     #252540;
+  --border2:    #35355a;
+  --acc:        #7c5cf7;
+  --acc2:       #a78bfa;
+  --acc-glow:   rgba(124,92,247,.22);
+  --text:       #e0e0f0;
+  --muted:      #8080a8;
+  --dim:        #4a4a6a;
+  --ok:         #4ade80;
+  --err:        #f87171;
+  --warn:       #fb923c;
+  --user-bg:    #0e1f3e;
+  --user-bdr:   rgba(59,130,246,.2);
+  --eve-bg:     #12122a;
+  --eve-bdr:    rgba(124,92,247,.2);
+  --task-bg:    rgba(251,146,60,.06);
+  --task-bdr:   rgba(251,146,60,.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+}
+
+/* ── LOCK SCREEN ─────────────────────────────── */
+#lock{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,#110d25 0%,var(--bg) 100%);
+}
+.lcard{
+  width:320px;
+  background:var(--s1);border:1px solid var(--border);border-radius:28px;
+  padding:44px 28px 36px;text-align:center;
+  box-shadow:0 0 80px rgba(124,92,247,.1);
+}
+.llogo{
+  width:76px;height:76px;border-radius:24px;
+  background:linear-gradient(135deg,#5c3ef5,#a78bfa);
+  margin:0 auto 22px;display:flex;align-items:center;justify-content:center;
+  font-size:34px;box-shadow:0 10px 36px rgba(92,62,245,.4);
+}
+.lcard h1{font-size:24px;font-weight:700;letter-spacing:-.4px}
+.lcard p{color:var(--muted);font-size:13px;margin:6px 0 28px}
+.ldots{display:flex;justify-content:center;gap:11px;margin-bottom:26px}
+.ld{
+  width:13px;height:13px;border-radius:50%;
+  border:2px solid var(--border2);background:transparent;
+  transition:all .18s cubic-bezier(.34,1.56,.64,1);
+}
+.ld.on{background:var(--acc);border-color:var(--acc);box-shadow:0 0 10px rgba(124,92,247,.7);transform:scale(1.1)}
+.ld.err{background:var(--err);border-color:var(--err);box-shadow:0 0 10px rgba(248,113,113,.6)}
+.kpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.k{
+  background:var(--s2);border:1px solid var(--border);color:var(--text);
+  font-size:22px;font-weight:500;padding:15px;border-radius:16px;
+  cursor:pointer;transition:all .12s;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.k:hover{background:var(--border)}
+.k:active{transform:scale(.9);background:var(--acc);color:#fff}
+.k.del{font-size:17px;color:var(--muted)}
+.k.ghost{visibility:hidden}
+.lerr{font-size:12px;color:var(--err);margin-top:14px;min-height:16px;opacity:0;transition:opacity .2s}
+.lerr.on{opacity:1}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}
+}
+.shake{animation:shake .38s ease}
+
+/* ── APP ─────────────────────────────────────── */
+#app{display:none;flex-direction:column;height:100dvh}
+
+/* Header */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;background:var(--s1);border-bottom:1px solid var(--border);
+  flex-shrink:0;gap:10px;
+}
+.hl{display:flex;align-items:center;gap:9px}
+.hlogo{
+  width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,#5c3ef5,#a78bfa);
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+}
+.htitle{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.badge{
+  font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;
+  letter-spacing:.3px;white-space:nowrap;transition:all .3s;
+  background:rgba(74,222,128,.1);color:var(--ok);border:1px solid rgba(74,222,128,.2);
+}
+.badge.thinking{background:rgba(124,92,247,.12);color:var(--acc2);border-color:rgba(124,92,247,.25)}
+.badge.auto{background:rgba(251,146,60,.1);color:var(--warn);border-color:rgba(251,146,60,.25)}
+.badge.err{background:rgba(248,113,113,.1);color:var(--err);border-color:rgba(248,113,113,.2)}
+.hr{display:flex;align-items:center;gap:7px;flex-shrink:0}
+
+/* Control pills & buttons */
+.pill{
+  display:flex;align-items:center;gap:5px;
+  background:var(--s2);border:1px solid var(--border);color:var(--muted);
+  font-size:11px;font-weight:500;padding:5px 10px;border-radius:20px;
+  cursor:pointer;transition:all .18s;user-select:none;white-space:nowrap;
+}
+.pill:hover{border-color:var(--border2);color:var(--text)}
+.pill.on{border-color:rgba(124,92,247,.5);color:var(--acc2);background:rgba(124,92,247,.08)}
+.pill.on.task{border-color:rgba(251,146,60,.4);color:var(--warn);background:rgba(251,146,60,.07)}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:all .2s}
+.pill.on .pdot{background:var(--acc);box-shadow:0 0 6px var(--acc);animation:breathe 1.8s infinite}
+.pill.on.task .pdot{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+@keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.ibtn{
+  background:none;border:1px solid var(--border);color:var(--muted);
+  font-size:11px;padding:5px 9px;border-radius:8px;cursor:pointer;transition:all .18s;
+  white-space:nowrap;
+}
+.ibtn:hover{border-color:var(--border2);color:var(--text)}
+.ibtn.set{border-color:rgba(74,222,128,.3);color:var(--ok);background:rgba(74,222,128,.04)}
+.ibtn.clr:hover{border-color:var(--err);color:var(--err)}
+
+/* Wake lock badge */
+.wl-badge{
+  font-size:10px;color:var(--ok);display:none;
+  align-items:center;gap:4px;opacity:.7;
+}
+.wl-badge.on{display:flex}
+.wl-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);animation:breathe 2s infinite}
+
+/* Chat */
+.chat{flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.chat::-webkit-scrollbar{width:3px}
+.chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* Empty state */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;gap:12px;color:var(--muted);text-align:center;padding:40px 24px;
+}
+.ering{
+  width:88px;height:88px;border-radius:50%;
+  background:radial-gradient(circle,rgba(124,92,247,.15) 0%,transparent 70%);
+  border:1px solid rgba(124,92,247,.2);
+  display:flex;align-items:center;justify-content:center;font-size:38px;
+}
+.empty h3{font-size:17px;color:var(--text);font-weight:600}
+.empty p{font-size:13px;max-width:230px;line-height:1.65}
+.hints{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;margin-top:4px}
+.hint{
+  font-size:12px;padding:6px 12px;border-radius:20px;
+  background:var(--s2);border:1px solid var(--border);color:var(--muted);
+  cursor:pointer;transition:all .15s;
+}
+.hint:hover{border-color:var(--acc);color:var(--text)}
+
+/* Messages */
+.msg{display:flex;gap:9px;animation:rise .22s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.av{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;flex-shrink:0;margin-top:2px;
+}
+.msg.user .av{background:linear-gradient(135deg,#1d4ed8,#6366f1)}
+.msg.eve .av{background:linear-gradient(135deg,#5c3ef5,#a78bfa)}
+.msg.sys .av{background:var(--s3);font-size:11px}
+.bwrap{display:flex;flex-direction:column;max-width:74%}
+.msg.user .bwrap{align-items:flex-end}
+.bubble{padding:10px 14px;border-radius:17px;font-size:14px;line-height:1.65;word-wrap:break-word}
+.msg.user .bubble{background:var(--user-bg);border:1px solid var(--user-bdr);border-bottom-right-radius:4px;color:#cfe0ff}
+.msg.eve .bubble{background:var(--eve-bg);border:1px solid var(--eve-bdr);border-bottom-left-radius:4px}
+.msg.sys .bubble{
+  background:var(--task-bg);border:1px solid var(--task-bdr);
+  border-radius:10px;font-size:12px;color:var(--warn);font-style:italic;
+}
+.meta{display:flex;align-items:center;gap:5px;margin-top:3px;padding:0 3px}
+.mtime{font-size:10px;color:var(--dim)}
+.msrc{font-size:10px;color:var(--dim)}
+/* Typing */
+.tdots{
+  display:flex;align-items:center;gap:4px;padding:11px 15px;
+  background:var(--eve-bg);border:1px solid var(--eve-bdr);
+  border-radius:17px;border-bottom-left-radius:4px;width:fit-content;
+}
+.td{width:7px;height:7px;border-radius:50%;background:var(--acc);opacity:.5;animation:td 1.1s infinite}
+.td:nth-child(2){animation-delay:.15s}
+.td:nth-child(3){animation-delay:.3s}
+@keyframes td{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-5px);opacity:1}}
+
+/* Bottom */
+.btm{padding:10px 14px 18px;background:var(--s1);border-top:1px solid var(--border);flex-shrink:0}
+.errbanner{
+  background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.22);
+  color:var(--err);border-radius:10px;font-size:12px;padding:8px 13px;
+  margin-bottom:9px;display:none;line-height:1.5;
+}
+.errbanner.on{display:block}
+/* Wave */
+.wave{display:none;justify-content:center;align-items:center;gap:3px;height:26px;margin-bottom:7px}
+.wave.on{display:flex}
+.wb{width:3px;border-radius:2px;background:var(--acc);height:4px;transition:height .08s ease}
+.wb:nth-child(even){background:var(--acc2)}
+/* Status */
+.status{text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px;min-height:16px}
+.status.listening{color:var(--acc2);font-weight:500}
+.status.speaking{color:var(--ok);font-weight:500}
+.status.auto{color:var(--warn);font-weight:500}
+/* Transcript */
+.transc{text-align:center;font-size:13px;color:var(--text);min-height:18px;margin-bottom:9px;font-style:italic;opacity:.55}
+/* Input row */
+.irow{display:flex;align-items:center;gap:9px}
+.txti{
+  flex:1;background:var(--s2);border:1px solid var(--border);border-radius:24px;
+  padding:11px 16px;color:var(--text);font-size:14px;outline:none;font-family:inherit;
+  transition:border-color .2s,box-shadow .2s;
+}
+.txti:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-glow)}
+.txti::placeholder{color:var(--dim)}
+.sbtn{
+  width:40px;height:40px;border-radius:50%;background:var(--acc);border:none;
+  color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .18s;flex-shrink:0;
+}
+.sbtn:hover{background:var(--acc2);transform:scale(1.07)}
+.sbtn:active{transform:scale(.93)}
+
+/* MIC BUTTON */
+.mic{
+  width:68px;height:68px;border-radius:50%;border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:24px;flex-shrink:0;position:relative;overflow:visible;
+  background:linear-gradient(135deg,#5c3ef5,#a78bfa);
+  box-shadow:0 4px 20px rgba(92,62,245,.4);
+  transition:all .18s;
+}
+.mic:hover{transform:scale(1.07);box-shadow:0 6px 30px rgba(92,62,245,.55)}
+.mic:active{transform:scale(.93)}
+.mic.listening{
+  background:linear-gradient(135deg,#b91c1c,#ef4444);
+  box-shadow:0 4px 24px rgba(239,68,68,.55);
+  animation:mpulse 1.5s infinite;
+}
+.mic.speaking{
+  background:linear-gradient(135deg,#047857,#34d399);
+  box-shadow:0 4px 22px rgba(52,211,153,.45);
+}
+.mic.auto-thinking{
+  background:linear-gradient(135deg,#92400e,#fb923c);
+  box-shadow:0 4px 22px rgba(251,146,60,.45);
+  animation:mpulse-warn 2s infinite;
+}
+@keyframes mpulse{
+  0%,100%{box-shadow:0 4px 24px rgba(239,68,68,.55)}
+  50%{box-shadow:0 4px 40px rgba(239,68,68,.8),0 0 0 10px rgba(239,68,68,.07)}
+}
+@keyframes mpulse-warn{
+  0%,100%{box-shadow:0 4px 22px rgba(251,146,60,.45)}
+  50%{box-shadow:0 4px 38px rgba(251,146,60,.7),0 0 0 8px rgba(251,146,60,.06)}
+}
+.rpl{
+  position:absolute;inset:-3px;border-radius:50%;
+  border:2px solid rgba(239,68,68,.4);
+  animation:rpl-out 1.5s infinite;pointer-events:none;
+}
+.rpl2{animation-delay:.5s;inset:-8px;border-color:rgba(239,68,68,.2)}
+@keyframes rpl-out{0%{transform:scale(1);opacity:1}100%{transform:scale(1.9);opacity:0}}
+
+/* Timer widget */
+.timer-chip{
+  display:none;align-items:center;gap:6px;
+  background:var(--task-bg);border:1px solid var(--task-bdr);
+  border-radius:20px;padding:5px 12px;font-size:12px;color:var(--warn);
+  margin-bottom:9px;justify-content:center;
+}
+.timer-chip.on{display:flex}
+.timer-icon{font-size:14px}
+
+/* Modals */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+  align-items:center;justify-content:center;backdrop-filter:blur(5px);
+}
+.overlay.on{display:flex}
+.modal{
+  background:var(--s1);border:1px solid var(--border);border-radius:22px;
+  padding:28px;width:380px;max-width:calc(100vw - 28px);
+  box-shadow:0 28px 70px rgba(0,0,0,.55);animation:min .2s ease;
+}
+@keyframes min{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{font-size:17px;margin-bottom:8px}
+.modal p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:18px}
+.modal p code{color:var(--acc2);font-family:monospace}
+.mi{
+  width:100%;padding:11px 14px;background:var(--s2);border:1px solid var(--border);
+  border-radius:11px;color:var(--text);font-size:13px;font-family:monospace;
+  outline:none;margin-bottom:14px;
+}
+.mi:focus{border-color:var(--acc)}
+.mi::placeholder{color:var(--dim)}
+.mbtns{display:flex;gap:9px}
+.mbtn{
+  flex:1;padding:11px;border-radius:11px;border:none;cursor:pointer;
+  font-size:13px;font-weight:600;transition:all .15s;
+}
+.mbtn.p{background:var(--acc);color:#fff}
+.mbtn.p:hover{background:var(--acc2)}
+.mbtn.s{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.mbtn.s:hover{border-color:var(--border2)}
+
+/* Notes panel */
+.notes-panel{
+  display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(4px);
+}
+.notes-panel.on{display:flex;align-items:flex-end;justify-content:center}
+.notes-inner{
+  background:var(--s1);border:1px solid var(--border);border-radius:22px 22px 0 0;
+  width:480px;max-width:100vw;max-height:60vh;display:flex;flex-direction:column;
+  padding:20px 20px 28px;
+}
+.notes-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.notes-hdr h3{font-size:15px}
+.notes-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.notes-close:hover{color:var(--text)}
+.notes-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px}
+.note-item{
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 13px;font-size:13px;color:var(--text);display:flex;align-items:flex-start;gap:8px;
+}
+.note-time{font-size:10px;color:var(--dim);white-space:nowrap;margin-top:2px}
+.no-notes{color:var(--muted);font-size:13px;text-align:center;padding:20px}
+
+@media(max-width:520px){
+  .bwrap{max-width:84%}
+  .pill span{display:none}
+  .htitle{font-size:14px}
+  .mic{width:60px;height:60px;font-size:21px}
+  .modal{padding:22px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOCK ══════════════════════════════════════ -->
+<div id="lock">
+  <div class="lcard" id="lcard">
+    <div class="llogo">🔮</div>
+    <h1>Eve</h1>
+    <p>Enter your access code</p>
+    <div class="ldots" id="ldots">
+      <div class="ld"></div><div class="ld"></div><div class="ld"></div>
+      <div class="ld"></div><div class="ld"></div><div class="ld"></div>
+    </div>
+    <div class="kpad">
+      <button class="k" onclick="kp('1')">1</button>
+      <button class="k" onclick="kp('2')">2</button>
+      <button class="k" onclick="kp('3')">3</button>
+      <button class="k" onclick="kp('4')">4</button>
+      <button class="k" onclick="kp('5')">5</button>
+      <button class="k" onclick="kp('6')">6</button>
+      <button class="k" onclick="kp('7')">7</button>
+      <button class="k" onclick="kp('8')">8</button>
+      <button class="k" onclick="kp('9')">9</button>
+      <button class="k ghost"></button>
+      <button class="k" onclick="kp('0')">0</button>
+      <button class="k del" onclick="kd()">⌫</button>
+    </div>
+    <div class="lerr" id="lerr">Incorrect code. Try again.</div>
+  </div>
+</div>
+
+<!-- ══ APP ═══════════════════════════════════════ -->
+<div id="app">
+
+  <div class="hdr">
+    <div class="hl">
+      <div class="hlogo">🔮</div>
+      <span class="htitle">Eve</span>
+      <span class="badge" id="badge">Ready</span>
+      <div class="wl-badge" id="wl-badge"><div class="wl-dot"></div>Screen on</div>
+    </div>
+    <div class="hr">
+      <button class="ibtn" id="key-btn" onclick="openKeyModal()">🔑 Key</button>
+      <div class="pill" id="task-pill" onclick="toggleTask()">
+        <div class="pdot"></div><span>Tasks</span>
+      </div>
+      <div class="pill" id="al-pill" onclick="toggleAL()">
+        <div class="pdot"></div><span>Always On</span>
+      </div>
+      <button class="ibtn" id="notes-btn" onclick="openNotes()" style="display:none">📝 <span id="note-count">0</span></button>
+      <button class="ibtn clr" onclick="clearChat()">Clear</button>
+    </div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="empty" id="empty">
+      <div class="ering">🎙️</div>
+      <h3>Hi, I'm Eve</h3>
+      <p>Your voice assistant powered by Claude. Tap the mic or type below.</p>
+      <div class="hints">
+        <div class="hint" onclick="quickSend('What can you help me with?')">What can you do?</div>
+        <div class="hint" onclick="quickSend('Set a timer for 5 minutes.')">Set a 5-min timer</div>
+        <div class="hint" onclick="quickSend('Tell me something interesting.')">Interesting fact</div>
+        <div class="hint" onclick="quickSend('Save a note: remember to drink water.')">Save a note</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btm">
+    <div class="errbanner" id="errbanner"></div>
+    <div class="timer-chip" id="timer-chip">
+      <span class="timer-icon">⏱</span>
+      <span id="timer-text">Timer: 5:00</span>
+      <button onclick="cancelTimer()" style="background:none;border:none;color:var(--warn);cursor:pointer;font-size:12px;margin-left:4px">✕</button>
+    </div>
+    <div class="wave" id="wave"></div>
+    <div class="status" id="status">Tap the mic to speak</div>
+    <div class="transc" id="transc"></div>
+    <div class="irow">
+      <input class="txti" id="txti" type="text" placeholder="Or type a message…" onkeydown="onkey(event)">
+      <button class="mic" id="mic" onclick="toggleMic()">🎤</button>
+      <button class="sbtn" onclick="sendText()">&#10148;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KEY MODAL ══════════════════════════════════ -->
+<div class="overlay" id="key-modal" onclick="maybeClose(event,'key-modal')">
+  <div class="modal">
+    <h3>🔑 Anthropic API Key</h3>
+    <p>Stored only in <strong>localStorage</strong> on this device. Sent exclusively to <code>api.anthropic.com</code> — never anywhere else.</p>
+    <input class="mi" id="key-in" type="password" placeholder="sk-ant-api03-…"
+           autocomplete="off" onkeydown="if(event.key==='Enter')saveKey()">
+    <div class="mbtns">
+      <button class="mbtn s" onclick="closeOverlay('key-modal')">Cancel</button>
+      <button class="mbtn p" onclick="saveKey()">Save &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTES PANEL ════════════════════════════════ -->
+<div class="notes-panel" id="notes-panel" onclick="maybeCloseNotes(event)">
+  <div class="notes-inner">
+    <div class="notes-hdr">
+      <h3>📝 Saved Notes (<span id="notes-count-label">0</span>)</h3>
+      <button class="notes-close" onclick="closeNotes()">✕</button>
+    </div>
+    <div class="notes-list" id="notes-list">
+      <div class="no-notes">No notes yet. Ask Eve to save a note.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════ */
+const PASS           = '272727';
+const MODEL          = 'claude-sonnet-4-6';
+const COMPRESS_AT    = 16;   // compress when history > N messages
+const KEEP_RECENT    = 6;    // keep this many messages fresh
+const MAX_TOKENS     = 1024;
+const MAX_TOKENS_COMP= 512;
+
+const BASE_SYSTEM = `You are Eve, a warm and capable voice assistant powered by Claude.
+Keep responses concise and natural for voice — 2–3 sentences unless depth is clearly needed.
+Speak directly and conversationally.`;
+
+const TASK_SYSTEM_EXTRA = `
+
+You are in Task Execution Mode. You can autonomously execute the following actions by including special tags anywhere in your response:
+
+[TIMER:Xm] or [TIMER:Xs]  — set a timer (e.g., [TIMER:5m])
+[NOTE:text]               — save a note (e.g., [NOTE:call dentist Friday])
+[SEARCH:query]            — open a web search (e.g., [SEARCH:weather tomorrow])
+[REMIND:Xm:text]          — speak a reminder after X minutes (e.g., [REMIND:10m:check the oven])
+
+Always inform the user what action you are taking. You can chain multiple actions. Strip tags from your spoken response.`;
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let pin        = '';
+let apiKey     = localStorage.getItem('eve_key') || '';
+let history    = [];
+let notes      = JSON.parse(localStorage.getItem('eve_notes') || '[]');
+let listening  = false;
+let speaking   = false;
+let alwaysOn   = false;
+let taskMode   = false;
+let autoMode   = false;    // Eve is doing something autonomously
+let unlocked   = false;
+let reco       = null;
+let wl         = null;     // wake lock handle
+let waveTimer  = null;
+let timerHandle= null;
+let timerEnd   = null;
+
+/* ═══════════════════════════════════════════════
+   LOCK
+═══════════════════════════════════════════════ */
+function kp(d){
+  if(pin.length>=6)return;
+  pin+=d;
+  renderDots();
+  if(pin.length===6)setTimeout(checkPin,130);
+}
+function kd(){pin=pin.slice(0,-1);renderDots()}
+
+function renderDots(state){
+  document.querySelectorAll('.ld').forEach((el,i)=>{
+    el.className='ld';
+    if(state==='err') el.classList.add('err');
+    else if(i<pin.length) el.classList.add('on');
+  });
+}
+
+function checkPin(){
+  if(pin===PASS){
+    unlocked=true;
+    document.getElementById('lock').style.display='none';
+    document.getElementById('app').style.display='flex';
+    boot();
+  } else {
+    renderDots('err');
+    document.getElementById('lcard').classList.add('shake');
+    document.getElementById('lerr').classList.add('on');
+    setTimeout(()=>{
+      document.getElementById('lcard').classList.remove('shake');
+      pin='';renderDots();
+      document.getElementById('lerr').classList.remove('on');
+    },950);
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(unlocked)return;
+  if(e.key>='0'&&e.key<='9')kp(e.key);
+  else if(e.key==='Backspace')kd();
+});
+
+/* ═══════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════ */
+function boot(){
+  buildWave();
+  initReco();
+  refreshKeyBtn();
+  refreshNotes();
+  // warm voices
+  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+  window.speechSynthesis.getVoices();
+  if(!apiKey)setTimeout(openKeyModal,700);
+}
+
+/* ═══════════════════════════════════════════════
+   WAKE LOCK
+═══════════════════════════════════════════════ */
+async function reqWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{
+    wl=await navigator.wakeLock.request('screen');
+    document.getElementById('wl-badge').classList.add('on');
+    wl.addEventListener('release',()=>{
+      document.getElementById('wl-badge').classList.remove('on');
+      if(alwaysOn)setTimeout(reqWakeLock,500);
+    });
+  }catch(_){}
+}
+function relWakeLock(){
+  if(wl){wl.release();wl=null;}
+  document.getElementById('wl-badge').classList.remove('on');
+}
+// Re-acquire on visibility change
+document.addEventListener('visibilitychange',()=>{
+  if(alwaysOn&&document.visibilityState==='visible')reqWakeLock();
+});
+
+/* ═══════════════════════════════════════════════
+   WAVE
+═══════════════════════════════════════════════ */
+function buildWave(){
+  const row=document.getElementById('wave');
+  for(let i=0;i<22;i++){const b=document.createElement('div');b.className='wb';row.appendChild(b);}
+}
+function startWave(col){
+  const row=document.getElementById('wave');
+  row.classList.add('on');
+  row.querySelectorAll('.wb').forEach(b=>{b.style.background=col||'var(--acc)'});
+  waveTimer=setInterval(()=>{
+    row.querySelectorAll('.wb').forEach(b=>{b.style.height=(Math.random()*22+3)+'px'});
+  },90);
+}
+function stopWave(){
+  clearInterval(waveTimer);
+  const row=document.getElementById('wave');
+  row.classList.remove('on');
+  row.querySelectorAll('.wb').forEach(b=>{b.style.height='4px'});
+}
+
+/* ═══════════════════════════════════════════════
+   SPEECH RECOGNITION
+═══════════════════════════════════════════════ */
+function initReco(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    showErr('Speech recognition not supported. Use Chrome or Edge.');
+    const m=document.getElementById('mic');
+    m.style.opacity='.35';m.style.pointerEvents='none';
+    return;
+  }
+  reco=new SR();
+  reco.continuous=false;
+  reco.interimResults=true;
+  reco.lang='en-US';
+
+  reco.onstart=()=>{listening=true;updateUI()};
+  reco.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      e.results[i].isFinal?(final+=t):(interim+=t);
+    }
+    document.getElementById('transc').textContent=final||interim;
+    if(final){
+      document.getElementById('transc').textContent='';
+      send(final.trim(),'voice');
+    }
+  };
+  reco.onerror=ev=>{
+    if(!['no-speech','aborted'].includes(ev.error))showErr('Mic: '+ev.error);
+    listening=false;updateUI();
+    if(alwaysOn)setTimeout(startReco,600);
+  };
+  reco.onend=()=>{
+    listening=false;
+    document.getElementById('transc').textContent='';
+    updateUI();
+    if(alwaysOn&&!speaking)setTimeout(startReco,350);
+  };
+}
+
+function startReco(){if(!reco||listening||speaking)return;try{reco.start()}catch(_){}}
+function stopReco(){if(reco&&listening)reco.stop()}
+function toggleMic(){
+  if(speaking){stopSpeak();return}
+  listening?stopReco():startReco();
+}
+
+/* ═══════════════════════════════════════════════
+   TTS
+═══════════════════════════════════════════════ */
+function speak(text){
+  if(!text)return;
+  window.speechSynthesis.cancel();
+  speaking=true;updateUI();
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=1.05;u.pitch=1.0;u.volume=1.0;
+  const voices=window.speechSynthesis.getVoices();
+  const pref=voices.find(v=>v.lang.startsWith('en')&&/neural|premium|enhanced|samantha|daniel|karen|zira|aria/i.test(v.name));
+  if(pref)u.voice=pref;
+  u.onend=u.onerror=()=>{speaking=false;updateUI();if(alwaysOn)setTimeout(startReco,450)};
+  // Chrome long-speech fix
+  const fix=setInterval(()=>{if(!window.speechSynthesis.speaking){clearInterval(fix);return}window.speechSynthesis.resume()},8000);
+  window.speechSynthesis.speak(u);
+}
+function stopSpeak(){window.speechSynthesis.cancel();speaking=false;updateUI()}
+
+/* ═══════════════════════════════════════════════
+   TOGGLES
+═══════════════════════════════════════════════ */
+function toggleAL(){
+  alwaysOn=!alwaysOn;
+  document.getElementById('al-pill').classList.toggle('on',alwaysOn);
+  if(alwaysOn){reqWakeLock();if(!speaking)startReco()}
+  else{stopReco();relWakeLock()}
+  updateUI();
+}
+
+function toggleTask(){
+  taskMode=!taskMode;
+  const pill=document.getElementById('task-pill');
+  pill.classList.toggle('on',taskMode);
+  pill.classList.toggle('task',taskMode);
+  addSysMsg(taskMode
+    ?'Task Execution Mode enabled. Eve can now set timers, save notes, and take autonomous actions.'
+    :'Task Execution Mode disabled.');
+}
+
+/* ═══════════════════════════════════════════════
+   UI STATE
+═══════════════════════════════════════════════ */
+function updateUI(){
+  const mic=document.getElementById('mic');
+  const st=document.getElementById('status');
+  mic.querySelector('.rpl')?.remove();
+  mic.querySelector('.rpl2')?.remove();
+  mic.className='mic';
+  if(autoMode){
+    mic.classList.add('auto-thinking');mic.textContent='🤔';
+    st.textContent='Eve is thinking independently…';
+    st.className='status auto';
+    startWave('var(--warn)');
+  } else if(speaking){
+    mic.classList.add('speaking');mic.textContent='🔊';
+    st.textContent='Eve is speaking… (tap to stop)';
+    st.className='status speaking';
+    startWave('var(--ok)');
+  } else if(listening){
+    mic.classList.add('listening');mic.textContent='⏹';
+    st.textContent='Listening…';
+    st.className='status listening';
+    const r1=document.createElement('div');r1.className='rpl';
+    const r2=document.createElement('div');r2.className='rpl rpl2';
+    mic.appendChild(r1);mic.appendChild(r2);
+    startWave('var(--err)');
+  } else {
+    mic.textContent='🎤';
+    st.textContent=alwaysOn?'Always listening — speak any time':'Tap the mic to speak';
+    st.className='status';
+    stopWave();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   TOKEN COMPRESSION (caveman-style)
+═══════════════════════════════════════════════ */
+async function maybeCompress(){
+  if(history.length<=COMPRESS_THRESHOLD)return;
+  const toComp=history.slice(0,history.length-KEEP_RECENT);
+  const recent=history.slice(history.length-KEEP_RECENT);
+  try{
+    const summary=await callAPI([
+      {role:'user',content:`Compress this conversation to dense key facts only — no filler, no grammar fluff, arrow notation for causality. Keep all important context:\n\n${
+        toComp.map(m=>`${m.role.toUpperCase()}: ${m.content}`).join('\n')
+      }`}
+    ],MAX_TOKENS_COMP,'Compress conversations into dense factual summaries. Remove all filler. Use arrow notation (→) for causality.');
+    history=[
+      {role:'user',content:'[COMPRESSED CONTEXT] '+summary},
+      {role:'assistant',content:'Context noted.'},
+      ...recent
+    ];
+  }catch(_){}
+}
+const COMPRESS_THRESHOLD=COMPRESS_AT;
+
+/* ═══════════════════════════════════════════════
+   ACTION PARSER
+═══════════════════════════════════════════════ */
+function parseActions(text){
+  const actions=[];
+  // Timers
+  const timers=[...text.matchAll(/\[TIMER:(\d+)([ms])\]/gi)];
+  timers.forEach(m=>actions.push({type:'timer',val:parseInt(m[1]),unit:m[2].toLowerCase()}));
+  // Notes
+  const noteMx=[...text.matchAll(/\[NOTE:([^\]]+)\]/gi)];
+  noteMx.forEach(m=>actions.push({type:'note',text:m[1].trim()}));
+  // Search
+  const searchMx=[...text.matchAll(/\[SEARCH:([^\]]+)\]/gi)];
+  searchMx.forEach(m=>actions.push({type:'search',query:m[1].trim()}));
+  // Remind
+  const remMx=[...text.matchAll(/\[REMIND:(\d+)([ms]):([^\]]+)\]/gi)];
+  remMx.forEach(m=>actions.push({type:'remind',val:parseInt(m[1]),unit:m[2].toLowerCase(),text:m[3].trim()}));
+  return actions;
+}
+
+function stripTags(text){
+  return text.replace(/\[(TIMER|NOTE|SEARCH|REMIND):[^\]]*\]/gi,'').replace(/\s{2,}/g,' ').trim();
+}
+
+function executeActions(actions){
+  actions.forEach(a=>{
+    if(a.type==='timer'){
+      const secs=a.unit==='m'?a.val*60:a.val;
+      startTimer(secs);
+      addSysMsg(`⏱ Timer set for ${a.val}${a.unit==='m'?` minute${a.val>1?'s':''}`:` second${a.val>1?'s':''}`}.`);
+    }
+    if(a.type==='note'){
+      saveNote(a.text);
+      addSysMsg(`📝 Note saved: "${a.text}"`);
+    }
+    if(a.type==='search'){
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(a.query)}`,'_blank');
+      addSysMsg(`🔍 Opened search for: "${a.query}"`);
+    }
+    if(a.type==='remind'){
+      const secs=a.unit==='m'?a.val*60:a.val;
+      scheduleReminder(secs,a.text);
+      addSysMsg(`🔔 Reminder set in ${a.val}${a.unit}: "${a.text}"`);
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   TIMER
+═══════════════════════════════════════════════ */
+function startTimer(secs){
+  cancelTimer();
+  timerEnd=Date.now()+secs*1000;
+  document.getElementById('timer-chip').classList.add('on');
+  timerHandle=setInterval(tickTimer,500);
+  tickTimer();
+}
+function tickTimer(){
+  const left=Math.max(0,Math.round((timerEnd-Date.now())/1000));
+  const m=Math.floor(left/60).toString().padStart(2,'0');
+  const s=(left%60).toString().padStart(2,'0');
+  document.getElementById('timer-text').textContent=`Timer: ${m}:${s}`;
+  if(left<=0){
+    cancelTimer();
+    addSysMsg('⏰ Timer finished!');
+    speak('Your timer is done.');
+  }
+}
+function cancelTimer(){
+  clearInterval(timerHandle);timerHandle=null;timerEnd=null;
+  document.getElementById('timer-chip').classList.remove('on');
+}
+
+/* ═══════════════════════════════════════════════
+   REMINDERS
+═══════════════════════════════════════════════ */
+function scheduleReminder(secs,text){
+  setTimeout(()=>{
+    addSysMsg('🔔 Reminder: '+text);
+    speak('Reminder: '+text);
+  },secs*1000);
+}
+
+/* ═══════════════════════════════════════════════
+   NOTES
+═══════════════════════════════════════════════ */
+function saveNote(text){
+  notes.push({text,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  localStorage.setItem('eve_notes',JSON.stringify(notes));
+  refreshNotes();
+}
+function refreshNotes(){
+  const btn=document.getElementById('notes-btn');
+  const cnt=document.getElementById('note-count');
+  if(notes.length>0){btn.style.display='inline-block';cnt.textContent=notes.length}
+  else{btn.style.display='none'}
+  document.getElementById('notes-count-label').textContent=notes.length;
+  const list=document.getElementById('notes-list');
+  if(notes.length===0){list.innerHTML='<div class="no-notes">No notes yet. Ask Eve to save a note.</div>';return}
+  list.innerHTML=notes.map((n,i)=>`
+    <div class="note-item">
+      <span style="flex:1">${esc(n.text)}</span>
+      <span class="note-time">${n.time}</span>
+      <button onclick="deleteNote(${i})" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:0 2px">✕</button>
+    </div>`).join('');
+}
+function deleteNote(i){notes.splice(i,1);localStorage.setItem('eve_notes',JSON.stringify(notes));refreshNotes()}
+function openNotes(){document.getElementById('notes-panel').classList.add('on')}
+function closeNotes(){document.getElementById('notes-panel').classList.remove('on')}
+function maybeCloseNotes(e){if(e.target===document.getElementById('notes-panel'))closeNotes()}
+
+/* ═══════════════════════════════════════════════
+   SEND & API
+═══════════════════════════════════════════════ */
+async function send(text,src){
+  text=text.trim();
+  if(!text)return;
+  hideErr();
+  if(!apiKey){showErr('Please set your API key first.');openKeyModal();return}
+  document.getElementById('empty')?.remove();
+  addMsg('user',text,src);
+  history.push({role:'user',content:text});
+  await maybeCompress();
+  const tid=addTyping();
+  setBadge('thinking');
+  try{
+    const sys=BASE_SYSTEM+(taskMode?TASK_SYSTEM_EXTRA:'');
+    const raw=await callAPI(history,MAX_TOKENS,sys);
+    removeEl(tid);
+    const actions=taskMode?parseActions(raw):[];
+    const spokenText=taskMode?stripTags(raw):raw;
+    addMsg('eve',raw,'api');
+    history.push({role:'assistant',content:raw});
+    setBadge('ready');
+    if(actions.length>0)executeActions(actions);
+    if(spokenText)speak(spokenText);
+  }catch(err){
+    removeEl(tid);
+    showErr('API error: '+err.message);
+    setBadge('err');
+    if(alwaysOn)setTimeout(startReco,1000);
+  }
+}
+
+async function callAPI(msgs,maxTok,sys){
+  const body={model:MODEL,max_tokens:maxTok,messages:msgs};
+  if(sys)body.system=sys;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify(body)
+  });
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    throw new Error(e?.error?.message||`HTTP ${res.status}`);
+  }
+  const d=await res.json();
+  return d.content[0].text;
+}
+
+function sendText(){
+  const el=document.getElementById('txti');
+  const v=el.value.trim();
+  if(v){el.value='';send(v,'text')}
+}
+function quickSend(t){send(t,'text')}
+function onkey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendText()}}
+
+/* ═══════════════════════════════════════════════
+   CHAT DOM
+═══════════════════════════════════════════════ */
+function addMsg(role,text,src){
+  const chat=document.getElementById('chat');
+  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const icon=role==='user'?'👤':role==='eve'?'🔮':'⚙️';
+  const srcLabel=src==='voice'?'🎤':src==='text'?'⌨️':'';
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  div.innerHTML=`
+    <div class="av">${icon}</div>
+    <div class="bwrap">
+      <div class="bubble">${esc(text)}</div>
+      <div class="meta">
+        <span class="mtime">${time}</span>
+        ${srcLabel?`<span class="msrc">· ${srcLabel}</span>`:''}
+      </div>
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addSysMsg(text){
+  const chat=document.getElementById('chat');
+  const div=document.createElement('div');
+  div.className='msg sys';
+  div.innerHTML=`<div class="av">⚙️</div><div class="bwrap"><div class="bubble">${esc(text)}</div></div>`;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addTyping(){
+  const chat=document.getElementById('chat');
+  const id='ty-'+Date.now();
+  const div=document.createElement('div');
+  div.id=id;div.className='msg eve';
+  div.innerHTML=`<div class="av">🔮</div><div class="tdots"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+  return id;
+}
+
+function removeEl(id){document.getElementById(id)?.remove()}
+
+function clearChat(){
+  history=[];stopSpeak();cancelTimer();
+  const chat=document.getElementById('chat');
+  chat.innerHTML=`<div class="empty" id="empty">
+    <div class="ering">🎙️</div>
+    <h3>Hi, I'm Eve</h3>
+    <p>Your voice assistant powered by Claude. Tap the mic or type below.</p>
+    <div class="hints">
+      <div class="hint" onclick="quickSend('What can you help me with?')">What can you do?</div>
+      <div class="hint" onclick="quickSend('Set a timer for 5 minutes.')">Set a 5-min timer</div>
+      <div class="hint" onclick="quickSend('Tell me something interesting.')">Interesting fact</div>
+      <div class="hint" onclick="quickSend('Save a note: remember to drink water.')">Save a note</div>
+    </div>
+  </div>`;
+  setBadge('ready');
+}
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+function setBadge(s){
+  const b=document.getElementById('badge');
+  b.className='badge';
+  if(s==='thinking'){b.textContent='Eve is thinking…';b.classList.add('thinking')}
+  else if(s==='auto'){b.textContent='Working autonomously…';b.classList.add('auto')}
+  else if(s==='err'){b.textContent='Error';b.classList.add('err')}
+  else{b.textContent='Ready'}
+}
+function showErr(m){
+  const el=document.getElementById('errbanner');
+  el.textContent=m;el.classList.add('on');
+  setTimeout(hideErr,7000);
+}
+function hideErr(){document.getElementById('errbanner').classList.remove('on')}
+function esc(t){
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* API Key modal */
+function openKeyModal(){
+  document.getElementById('key-modal').classList.add('on');
+  const inp=document.getElementById('key-in');
+  if(apiKey)inp.value=apiKey;
+  setTimeout(()=>inp.focus(),150);
+}
+function closeOverlay(id){document.getElementById(id).classList.remove('on')}
+function maybeClose(e,id){if(e.target===document.getElementById(id))closeOverlay(id)}
+function saveKey(){
+  const v=document.getElementById('key-in').value.trim();
+  if(!v)return;
+  apiKey=v;localStorage.setItem('eve_key',v);
+  refreshKeyBtn();closeOverlay('key-modal');
+}
+function refreshKeyBtn(){
+  const b=document.getElementById('key-btn');
+  if(apiKey){b.textContent='🔑 Key ✓';b.classList.add('set')}
+  else{b.textContent='🔑 Key';b.classList.remove('set')}
+}
+</script>
+</body>
+</html>
